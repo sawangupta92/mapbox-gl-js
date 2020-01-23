@@ -181,7 +181,9 @@ class CollisionIndex {
                           labelPlaneMatrix: mat4,
                           showCollisionCircles: boolean,
                           pitchWithMap: boolean,
-                          collisionGroupPredicate?: any): { circles: Array<number>, offscreen: boolean } {
+                          collisionGroupPredicate?: any,
+                          ppp: number,
+                          lineHeight): { circles: Array<number>, offscreen: boolean, collisionDetected: boolean } {
         const placedCollisionCircles = [];
 
         const projectedAnchor = this.projectAnchor(posMatrix, symbol.anchorX, symbol.anchorY);
@@ -223,12 +225,12 @@ class CollisionIndex {
                 return circles.length - 1;
             };
 
-            const radius = 10 * projectedAnchor.perspectiveRatio;
+            const radius = (lineHeight * fontScale + 2 * ppp) / 2;
 
             let lastPlacedCircle = null;
 
-            const labelPlaneMin = new Point(0, 0);
-            const labelPlaneMax = new Point(this.transform.width, this.transform.height);
+            const labelPlaneMin = new Point(-viewportPadding, -viewportPadding);
+            const labelPlaneMax = new Point(this.screenRightBoundary, this.screenBottomBoundary);
 
             // Construct projected path from projected line vertices. Anchor points are ignored and removed
             const first = firstAndLastGlyph.first;
@@ -240,6 +242,7 @@ class CollisionIndex {
                 const startIdx = segIdx;
                 const endIdx = segIdx + 1;
 
+                //#error TODO: selvitä miksi distant label merireiteillä pienenee? Oisko tää "4bc9b8523 - Fix perspective correction of symbols in distant tiles"?
                 const clippedLine = this.clipLine(projectedPath[startIdx], projectedPath[endIdx], labelPlaneMin, labelPlaneMax);
 
                 if (!clippedLine)
@@ -248,6 +251,7 @@ class CollisionIndex {
 
                 const startPoint = clippedLine[0];
                 const endPoint = clippedLine[1];
+                const dstStartIdx = circles.length;
 
                 // Always place collision circles on first and last points of the segment unless the path is continuous.
                 // Clipping against label plane boundaries might cause discontinuouties that must be taken into account
@@ -266,33 +270,37 @@ class CollisionIndex {
                 for (let i = 1; i <= circlesInSegment; i++) {
                     addCircle(startPoint.add(circleToCircle.mult(i)), radius);
                 }
-            }
 
-            for (const circle of circles) {
-                const px = circle.point.x + viewportPadding;
-                const py = circle.point.y + viewportPadding;
+                // Convert circles of this segment into collision circles and perform collision checks
+                for (let cIdx = dstStartIdx; cIdx < circles.length; cIdx++) {
+                    const circle = circles[cIdx];
 
-                placedCollisionCircles.push(px, py, circle.radius, 0);
-
-                const x1 = px - circle.radius;
-                const y1 = py - circle.radius;
-                const x2 = px + circle.radius;
-                const y2 = py + circle.radius;
-
-                entirelyOffscreen = entirelyOffscreen && this.isOffscreen(x1, y1, x2, y2);
-                inGrid = inGrid || this.isInsideGrid(x1, y1, x2, y2);
-
-                if (!allowOverlap) {
-                    if (this.grid.hitTestCircle(px, py, circle.radius, collisionGroupPredicate)) {
-                        if (!showCollisionCircles) {
-                            return {
-                                circles: [],
-                                offscreen: false
-                            };
-                        } else {
-                            // Don't early exit if we're showing the debug circles because we still want to calculate
-                            // which circles are in use
-                            collisionDetected = true;
+                    const px = circle.point.x + viewportPadding;
+                    const py = circle.point.y + viewportPadding;
+    
+                    placedCollisionCircles.push(px, py, circle.radius, 0);
+    
+                    const x1 = px - circle.radius;
+                    const y1 = py - circle.radius;
+                    const x2 = px + circle.radius;
+                    const y2 = py + circle.radius;
+    
+                    entirelyOffscreen = entirelyOffscreen && this.isOffscreen(x1, y1, x2, y2);
+                    inGrid = inGrid || this.isInsideGrid(x1, y1, x2, y2);
+    
+                    if (!allowOverlap) {
+                        if (this.grid.hitTestCircle(px, py, circle.radius, collisionGroupPredicate)) {
+                            if (!showCollisionCircles) {
+                                return {
+                                    circles: [],
+                                    offscreen: false,
+                                    collisionDetected
+                                };
+                            } else {
+                                // Don't early exit if we're showing the debug circles because we still want to calculate
+                                // which circles are in use
+                                collisionDetected = true;
+                            }
                         }
                     }
                 }
@@ -300,8 +308,9 @@ class CollisionIndex {
         }
 
         return {
-            circles: (collisionDetected || !inGrid) ? [] : placedCollisionCircles,
-            offscreen: entirelyOffscreen
+            circles: ((!showCollisionCircles && collisionDetected) || !inGrid) ? [] : placedCollisionCircles,
+            offscreen: entirelyOffscreen,
+            collisionDetected
         };
     }
 

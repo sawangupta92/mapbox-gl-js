@@ -10,7 +10,7 @@ import StencilMode from '../gl/stencil_mode';
 import CullFaceMode from '../gl/cull_face_mode';
 import {collisionUniformValues, collisionUniformValuesTemp} from './program/collision_program';
 
-import {StructArrayLayout4i8, StructArrayLayout3ui6} from '../data/array_types'
+import {StructArrayLayout2i4i12, StructArrayLayout3ui6} from '../data/array_types'
 import {collisionCircleLayoutTemp} from '../data/bucket/symbol_attributes';
 import SegmentVector from '../data/segment';
 import { mat4, vec4 } from 'gl-matrix';
@@ -59,7 +59,7 @@ function drawCollisionDebugGeometry(painter: Painter, sourceCache: SourceCache, 
     const maxIndicesPerBatch = maxCirclesPerBatch * 6;
 
     if (!('vertexBuffer2' in layer)) {
-        const array = new StructArrayLayout4i8();
+        const array = new StructArrayLayout2i4i12();
 
         // use temporary array reserve space for x circles (4 vertex per quad)
         array.resize(maxVerticesPerBatch);
@@ -92,15 +92,17 @@ function drawCollisionDebugGeometry(painter: Painter, sourceCache: SourceCache, 
     let colorFlip = false;
 
     // Gather collision circles of tiles and render them in batches
-    const batchVertices = new StructArrayLayout4i8();
+    const batchVertices = new StructArrayLayout2i4i12();
     batchVertices.resize(maxVerticesPerBatch);
     batchVertices._trim();
 
-    const appendVertex = (idx, x, y, z, w) => {
-        batchVertices.int16[idx * 4 + 0] = x;   // anchor center
-        batchVertices.int16[idx * 4 + 1] = y;   // anchor center
-        batchVertices.int16[idx * 4 + 2] = z;   // radius
-        batchVertices.int16[idx * 4 + 3] = w;   // radius
+    const appendVertex = (idx, x, y, z, w, c) => {
+        batchVertices.int16[idx * 6 + 0] = x;   // anchor center
+        batchVertices.int16[idx * 6 + 1] = y;   // anchor center
+        batchVertices.int16[idx * 6 + 2] = z;   // radius
+        batchVertices.int16[idx * 6 + 3] = w;   // radius
+        batchVertices.int16[idx * 6 + 4] = c;   // collision
+        batchVertices.int16[idx * 6 + 5] = 0;   // reserved
     }
 
     for (let i = 0; i < coords.length; i++) {
@@ -132,7 +134,7 @@ function drawCollisionDebugGeometry(painter: Painter, sourceCache: SourceCache, 
         }
 
         const uniforms = collisionUniformValuesTemp(painter.transform.glCoordMatrix, prevInvPosMatrix,
-            posMatrix, [painter.transform.width, painter.transform.height]);
+            posMatrix, painter.transform);
 
         // Upload and render quads in batches
         let batchVertexIdx = 0;
@@ -145,10 +147,11 @@ function drawCollisionDebugGeometry(painter: Painter, sourceCache: SourceCache, 
 
             for (let vIdx = vertexOffset; vIdx < vertexOffset + batchSize; vIdx+=4) {
                 const r = arr[vIdx + 2];
-                appendVertex(batchVertexIdx + 0, arr[vIdx + 0], arr[vIdx + 1], -r, -r);
-                appendVertex(batchVertexIdx + 1, arr[vIdx + 0], arr[vIdx + 1], -r, r);
-                appendVertex(batchVertexIdx + 2, arr[vIdx + 0], arr[vIdx + 1], r, r);
-                appendVertex(batchVertexIdx + 3, arr[vIdx + 0], arr[vIdx + 1], r, -r);
+                const collision = arr[vIdx + 3];
+                appendVertex(batchVertexIdx + 0, arr[vIdx + 0], arr[vIdx + 1], -r, -r, collision);
+                appendVertex(batchVertexIdx + 1, arr[vIdx + 0], arr[vIdx + 1], -r, r, collision);
+                appendVertex(batchVertexIdx + 2, arr[vIdx + 0], arr[vIdx + 1], r, r, collision);
+                appendVertex(batchVertexIdx + 3, arr[vIdx + 0], arr[vIdx + 1], r, -r, collision);
 
                 batchVertexIdx += 4;
             }

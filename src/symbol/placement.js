@@ -548,6 +548,10 @@ export class Placement {
             if (textCircles) {
                 const placedSymbol = bucket.text.placedSymbolArray.get(symbolInstance.centerJustifiedTextSymbolIndex);
                 const fontSize = symbolSize.evaluateSizeForFeature(bucket.textSizeData, partiallyEvaluatedTextSize, placedSymbol);
+
+                const lineHeight = bucket.layers[0].layout.get('text-line-height') * 24;
+                const textPadding = bucket.layers[0].layout.get('text-padding');
+
                 placedGlyphCircles = this.collisionIndex.placeCollisionCircles(textCircles,
                         textAllowOverlap,
                         scale,
@@ -560,12 +564,16 @@ export class Placement {
                         textLabelPlaneMatrix,
                         showCollisionBoxes,
                         pitchWithMap,
-                        collisionGroup.predicate);
+                        collisionGroup.predicate,
+                        textPadding,
+                        lineHeight);
+                
+                assert(!placedGlyphCircles.circles.length || (!placedGlyphCircles.collisionDetected || showCollisionBoxes));
                 // If text-allow-overlap is set, force "placedCircles" to true
                 // In theory there should always be at least one circle placed
                 // in this case, but for now quirks in text-anchor
                 // and text-offset may prevent that from being true.
-                placeText = textAllowOverlap || placedGlyphCircles.circles.length > 0;
+                placeText = textAllowOverlap || (placedGlyphCircles.circles.length > 0 && !placedGlyphCircles.collisionDetected);
                 offscreen = offscreen && placedGlyphCircles.offscreen;
             }
 
@@ -622,15 +630,17 @@ export class Placement {
                 this.collisionIndex.insertCollisionBox(placedIconBoxes.box, layout.get('icon-ignore-placement'),
                         bucket.bucketInstanceId, iconFeatureIndex, collisionGroup.ID);
             }
-            if (placeText && placedGlyphCircles) {
-                this.collisionIndex.insertCollisionCircles(placedGlyphCircles.circles, layout.get('text-ignore-placement'),
+            if (placedGlyphCircles) {
+                if (placeText) {
+                    this.collisionIndex.insertCollisionCircles(placedGlyphCircles.circles, layout.get('text-ignore-placement'),
                         bucket.bucketInstanceId, textFeatureIndex, collisionGroup.ID);
+                }
 
                 for (let i = 0; i < placedGlyphCircles.circles.length; i+=4) {
                     bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 0]);
                     bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 1]);
                     bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 2]);
-                    bucket.collisionCircleArrayTemp.push(0);
+                    bucket.collisionCircleArrayTemp.push(placedGlyphCircles.collisionDetected ? 1 : 0);
 
                     bucket.posMatrixCircles = posMatrix;
                 }

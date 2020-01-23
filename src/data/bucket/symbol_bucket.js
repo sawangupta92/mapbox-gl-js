@@ -745,7 +745,7 @@ class SymbolBucket implements Bucket {
             const y1 = box.y1;
             const x2 = box.x2;
             const y2 = box.y2;
-
+            console.log(x1 + " " + y1 + " " + x2 + " " + y2);
             // If the radius > 0, this collision box is actually a circle
             // The data we add to the buffers is exactly the same, but we'll render with a different shader.
             const isCircle = box.radius > 0;
