@@ -108,6 +108,27 @@ const shaderOpacityAttributes = [
     {name: 'a_fade_opacity', components: 1, type: 'Uint8', offset: 0}
 ];
 
+let total = {};
+let count = {};
+
+var timer = function(name) {
+    let start = performance.now();
+    return {
+        stop: function() {
+            let end = performance.now();
+            let time = end - start;
+            if (!total[name]) total[name] = 0.0;
+            if (!count[name]) count[name] = 0;
+            total[name] += time;
+            count[name]++;
+            console.log('Timer: ', name, 'finished in', time * 1000.0, 'us');
+            console.log('Average: ', total[name] / count[name] * 1000.0, 'us');
+            console.log('Total:  ', total[name] * 1000.0, 'us');
+            console.log('Count: ', count[name]);
+        }
+    }
+};
+
 function addVertex(array, anchorX, anchorY, ox, oy, tx, ty, sizeVertex, isSDF: boolean, pixelOffsetX, pixelOffsetY, minFontScaleX, minFontScaleY) {
     const aSizeX = sizeVertex ? Math.min(MAX_PACKED_SIZE, Math.round(sizeVertex[0])) : 0;
     const aSizeY = sizeVertex ? Math.min(MAX_PACKED_SIZE, Math.round(sizeVertex[1])) : 0;
@@ -375,12 +396,12 @@ class SymbolBucket implements Bucket {
 
         this.text = new SymbolBuffers(new ProgramConfigurationSet(symbolLayoutAttributes.members, this.layers, this.zoom, property => /^text/.test(property)));
         this.icon = new SymbolBuffers(new ProgramConfigurationSet(symbolLayoutAttributes.members, this.layers, this.zoom, property => /^icon/.test(property)));
-
+        let t = timer('collision_buffer_creation');
         this.textCollisionBox = new CollisionBuffers(CollisionBoxLayoutArray, collisionBoxLayout.members, LineIndexArray);
         this.iconCollisionBox = new CollisionBuffers(CollisionBoxLayoutArray, collisionBoxLayout.members, LineIndexArray);
         this.textCollisionCircle = new CollisionBuffers(CollisionCircleLayoutArray, collisionCircleLayout.members, TriangleIndexArray);
         this.iconCollisionCircle = new CollisionBuffers(CollisionCircleLayoutArray, collisionCircleLayout.members, TriangleIndexArray);
-
+        t.stop();
         this.glyphOffsetArray = new GlyphOffsetArray();
         this.lineVertexArray = new SymbolLineVertexArray();
         this.symbolInstances = new SymbolInstanceArray();
@@ -540,10 +561,12 @@ class SymbolBucket implements Bucket {
 
     upload(context: Context) {
         if (!this.uploaded) {
+            let t = timer('collision_buffer_uploads');
             this.textCollisionBox.upload(context);
             this.iconCollisionBox.upload(context);
             this.textCollisionCircle.upload(context);
             this.iconCollisionCircle.upload(context);
+            t.stop();
         }
         this.text.upload(context, this.sortFeaturesByY, !this.uploaded, this.text.programConfigurations.needsUpload);
         this.icon.upload(context, this.sortFeaturesByY, !this.uploaded, this.icon.programConfigurations.needsUpload);
