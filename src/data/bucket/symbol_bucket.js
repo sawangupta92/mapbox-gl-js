@@ -12,6 +12,7 @@ import {SymbolLayoutArray,
     SymbolOpacityArray,
     CollisionBoxLayoutArray,
     CollisionCircleLayoutArray,
+    StructArrayLayout4i8,
     CollisionVertexArray,
     PlacedSymbolArray,
     SymbolInstanceArray,
@@ -317,7 +318,7 @@ class SymbolBucket implements Bucket {
     sortedAngle: number;
     featureSortOrder: Array<number>;
 
-    collisionCircleArrayTemp: CollisionCircleLayoutArrayTemp;
+    collisionCircleArrayTemp: StructArrayLayout4i8;
 
     text: SymbolBuffers;
     icon: SymbolBuffers;
@@ -348,7 +349,7 @@ class SymbolBucket implements Bucket {
         this.hasRTLText = false;
         this.sortKeyRanges = [];
 
-        this.collisionCircleArrayTemp = new CollisionCircleLayoutArray();
+        this.collisionCircleArrayTemp = new StructArrayLayout4i8();
 
         const layer = this.layers[0];
         const unevaluatedLayoutValues = layer._unevaluatedLayout._values;
@@ -745,7 +746,7 @@ class SymbolBucket implements Bucket {
             const y1 = box.y1;
             const x2 = box.x2;
             const y2 = box.y2;
-            console.log(x1 + " " + y1 + " " + x2 + " " + y2);
+
             // If the radius > 0, this collision box is actually a circle
             // The data we add to the buffers is exactly the same, but we'll render with a different shader.
             const isCircle = box.radius > 0;

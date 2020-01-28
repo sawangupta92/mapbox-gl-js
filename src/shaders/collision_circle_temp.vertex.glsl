@@ -1,10 +1,7 @@
 attribute vec2 a_idx;
-//attribute vec2 a_extent;
-//attribute vec2 a_reserved;
 
 uniform mat4 u_matrix;
-uniform mat4 u_toWorld;
-uniform mat4 u_fromWorld;
+uniform mat4 u_invMatrix;
 uniform vec2 u_viewport_size;
 uniform float u_camera_to_center_distance;
 
@@ -21,8 +18,10 @@ void main() {
     // Deduce vertex position and quad index from vertex index
     vec4 quadVec = u_quads[int(floor(a_idx.x / 4.0))];
 
-    vec3 quadCenterPos = quadVec.xyz;
-    float radius = quadVec.w;
+    // 100 = hard-coded padding used in collision logic
+    vec2 quadCenterPos = quadVec.xy - vec2(100.0);
+    float radius = quadVec.z;
+    float collision = quadVec.w;
 
     vec2 quadVertexOffset = vec2(
         mix(-1.0, 1.0, float(vertexIdx >= 2.0)),
@@ -30,9 +29,19 @@ void main() {
 
     vec2 quadVertexExtent = quadVertexOffset * radius;
 
-    // 100 = hard-coded padding used in collision logic
-    //vec4 clipPos = u_matrix * vec4(a_pos - vec2(100), 0.0, 1.0);
-    vec4 clipPos = u_matrix * vec4(quadCenterPos.xy - vec2(100), 0.0, 1.0);
+    //vec4 clipPos = u_matrix * vec4(quadCenterPos.xy, quadCenterPos.z / 16384.0, 1.0);
+
+    // Project center position to tile space to reconstruct the depth information
+    vec4 rayStart = u_invMatrix * vec4(quadCenterPos, -1.0, 1.0);
+    vec4 rayEnd   = u_invMatrix * vec4(quadCenterPos,  1.0, 1.0);
+
+    rayStart.xyz /= rayStart.w;
+    rayEnd.xyz   /= rayEnd.w;
+
+    float t = (0.0 - rayStart.z) / (rayEnd.z - rayStart.z);
+
+    vec3 tilePos = mix(rayStart.xyz, rayEnd.xyz, t);
+    vec4 clipPos = u_matrix * vec4(tilePos, 1.0);
 
     float padding_factor = 1.2;
     v_radius = radius;
@@ -44,8 +53,8 @@ void main() {
         0.0, // Prevents oversized near-field circles in pitched/overzoomed tiles
         4.0);
 
-    v_perspective_ratio = 1.0;// collision_perspective_ratio;
-    v_collision = 0.0;
+    v_perspective_ratio = collision_perspective_ratio;
+    v_collision = collision;
     gl_Position = vec4(clipPos.xyz / clipPos.w, 1.0) + vec4(quadVertexExtent * padding_factor / u_viewport_size * 2.0, 0.0, 0.0);
 
 

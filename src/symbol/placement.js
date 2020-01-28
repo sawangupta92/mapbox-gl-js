@@ -6,6 +6,7 @@ import * as symbolSize from './symbol_size';
 import * as projection from './projection';
 import {getAnchorJustification, evaluateVariableOffset} from './symbol_layout';
 import {getAnchorAlignment, WritingMode} from './shaping';
+import {mat4} from 'gl-matrix';
 import assert from 'assert';
 import pixelsToTileUnits from '../source/pixels_to_tile_units';
 import Point from '@mapbox/point-geometry';
@@ -640,10 +641,8 @@ export class Placement {
                     bucket.collisionCircleArrayTemp.emplaceBack(
                         placedGlyphCircles.circles[i + 0],              // x
                         placedGlyphCircles.circles[i + 1],              // y
-                        0,                                              // depth
                         placedGlyphCircles.circles[i + 2],              // radius
                         placedGlyphCircles.collisionDetected ? 1 : 0,   // collisionDetected-flag
-                        0                                               // unused
                     );
                     //bucket.collisionCircleArrayTemp.emplaceBack()
                     //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 0]);
@@ -651,7 +650,12 @@ export class Placement {
                     //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 2]);
                     //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.collisionDetected ? 1 : 0);
 
-                    bucket.posMatrixCircles = posMatrix;
+                    //bucket.posMatrixCircles = posMatrix;
+
+                    //bucket.invProjMatCircles[12] = 0;
+                    //bucket.invProjMatCircles[13] = 0;
+
+                    bucket.invProjMatCircles = mat4.invert([], posMatrix);
                 }
             }
 

@@ -23,10 +23,9 @@ export type CollisionUniformsType = {|
 
 export type CollisionUniformsTypeTemp = {|
     'u_matrix': UniformMatrix4f,
+    'u_invMatrix': UniformMatrix4f,
     'u_quads': Uniform4fv,
     'u_camera_to_center_distance': Uniform1f,
-    'u_toWorld': UniformMatrix4f,
-    'u_fromWorld': UniformMatrix4f,
     'u_viewport_size': Uniform2f
 |};
 
@@ -40,10 +39,9 @@ const collisionUniforms = (context: Context, locations: UniformLocations): Colli
 
 const collisionUniformsTemp = (context: Context, locations: UniformLocations): CollisionUniformsType => ({
     'u_matrix': new UniformMatrix4f(context, locations.u_matrix),
+    'u_invMatrix': new UniformMatrix4f(context, locations.u_invMatrix),
     'u_quads': new Uniform4fv(context, locations.u_quads),
     'u_camera_to_center_distance': new Uniform1f(context, locations.u_camera_to_center_distance),
-    'u_toWorld': new UniformMatrix4f(context, locations.u_toWorld),
-    'u_fromWorld': new UniformMatrix4f(context, locations.u_fromWorld),
     'u_viewport_size': new Uniform2f(context, locations.u_viewport_size)
 });
 
@@ -67,17 +65,15 @@ const collisionUniformValues = (
 
 const collisionUniformValuesTemp = (
     matrix: Float32Array,
-    toWorld: Float32Array,
-    fromWorld: Float32Array,
+    invMatrix: Float32Array,
     quads: Float32Array,
     transform: Transform
 ): UniformValues<CollisionUniformsTypeTemp> => {
     return {
         'u_matrix': matrix,
+        'u_invMatrix': invMatrix,
         'u_quads': quads,
         'u_camera_to_center_distance': transform.cameraToCenterDistance,
-        'u_toWorld': toWorld,
-        'u_fromWorld': fromWorld,
         'u_viewport_size': [transform.width, transform.height]
     };
 };
