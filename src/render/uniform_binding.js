@@ -133,6 +133,22 @@ class UniformMatrix4f extends Uniform<Float32Array> {
     }
 }
 
+const emptyFloat32Array = new Float32Array(0);
+class Uniform4fv extends Uniform<Float32Array> {
+    constructor(context: Context, location: WebGLUniformLocation) {
+        super(context, location);
+        this.current = emptyFloat32Array;
+    }
+
+    set(v: Float32Array): void {
+        // TODO: proper equality check?
+        //if (v !== this.current) {
+            this.current = v;
+            this.gl.uniform4fv(this.location, v);
+        //}
+    }
+}
+
 export {
     Uniform,
     Uniform1i,
@@ -140,6 +156,7 @@ export {
     Uniform2f,
     Uniform3f,
     Uniform4f,
+    Uniform4fv,
     UniformColor,
     UniformMatrix4f
 };

@@ -3,6 +3,7 @@
 import {
     Uniform1f,
     Uniform2f,
+    Uniform4fv,
     UniformMatrix4f
 } from '../uniform_binding';
 import pixelsToTileUnits from '../../source/pixels_to_tile_units';
@@ -20,8 +21,9 @@ export type CollisionUniformsType = {|
     'u_overscale_factor': Uniform1f
 |};
 
-export type COllisionUniformsTypeTemp = {|
+export type CollisionUniformsTypeTemp = {|
     'u_matrix': UniformMatrix4f,
+    'u_quads': Uniform4fv,
     'u_camera_to_center_distance': Uniform1f,
     'u_toWorld': UniformMatrix4f,
     'u_fromWorld': UniformMatrix4f,
@@ -38,6 +40,7 @@ const collisionUniforms = (context: Context, locations: UniformLocations): Colli
 
 const collisionUniformsTemp = (context: Context, locations: UniformLocations): CollisionUniformsType => ({
     'u_matrix': new UniformMatrix4f(context, locations.u_matrix),
+    'u_quads': new Uniform4fv(context, locations.u_quads),
     'u_camera_to_center_distance': new Uniform1f(context, locations.u_camera_to_center_distance),
     'u_toWorld': new UniformMatrix4f(context, locations.u_toWorld),
     'u_fromWorld': new UniformMatrix4f(context, locations.u_fromWorld),
@@ -66,10 +69,12 @@ const collisionUniformValuesTemp = (
     matrix: Float32Array,
     toWorld: Float32Array,
     fromWorld: Float32Array,
+    quads: Float32Array,
     transform: Transform
-): UniformValues<COllisionUniformsTypeTemp> => {
+): UniformValues<CollisionUniformsTypeTemp> => {
     return {
         'u_matrix': matrix,
+        'u_quads': quads,
         'u_camera_to_center_distance': transform.cameraToCenterDistance,
         'u_toWorld': toWorld,
         'u_fromWorld': fromWorld,

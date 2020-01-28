@@ -637,10 +637,19 @@ export class Placement {
                 }
 
                 for (let i = 0; i < placedGlyphCircles.circles.length; i+=4) {
-                    bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 0]);
-                    bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 1]);
-                    bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 2]);
-                    bucket.collisionCircleArrayTemp.push(placedGlyphCircles.collisionDetected ? 1 : 0);
+                    bucket.collisionCircleArrayTemp.emplaceBack(
+                        placedGlyphCircles.circles[i + 0],              // x
+                        placedGlyphCircles.circles[i + 1],              // y
+                        0,                                              // depth
+                        placedGlyphCircles.circles[i + 2],              // radius
+                        placedGlyphCircles.collisionDetected ? 1 : 0,   // collisionDetected-flag
+                        0                                               // unused
+                    );
+                    //bucket.collisionCircleArrayTemp.emplaceBack()
+                    //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 0]);
+                    //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 1]);
+                    //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.circles[i + 2]);
+                    //bucket.collisionCircleArrayTemp.push(placedGlyphCircles.collisionDetected ? 1 : 0);
 
                     bucket.posMatrixCircles = posMatrix;
                 }
@@ -653,7 +662,7 @@ export class Placement {
             seenCrossTileIDs[symbolInstance.crossTileID] = true;
         };
 
-        bucket.collisionCircleArrayTemp = [];
+        bucket.collisionCircleArrayTemp.clear();
 
         if (zOrderByViewportY) {
             assert(bucketPart.symbolInstanceStart === 0);
