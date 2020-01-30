@@ -2,6 +2,7 @@
 
 import tap from 'tap';
 import sinon from 'sinon';
+import almostEqual from 'almost-equal';
 
 type CreateTest = (typeof sinon) & {
     (name: string, body: (test: CreateTest) => void): void,
@@ -23,6 +24,15 @@ type CreateTest = (typeof sinon) & {
     plan(n: number): void,
     end(): void,
     tearDown(() => void): void,
+};
+
+// Add function for floating point equality checking.
+tap.Test.prototype.almostEqual = function(found, wanted, epsilon, message) {
+    return this.ok(
+        almostEqual(found, wanted, epsilon),
+        message || "should be almost equal",
+        {found, wanted, compare: "~="}
+    );
 };
 
 export const test = (tap.test: CreateTest);
